@@ -1,4 +1,6 @@
-
+# -*- coding: utf-8 -*-
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 # 0. IMPORT LIBRARY
 import warnings
@@ -125,10 +127,10 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 
     df_model = df[FEATURES_FINAL + [TARGET]].copy()
 
-    # 1. TERM → integer (36 atau 60)
+    # 1. TERM -> integer (36 atau 60)
     df_model['term'] = df_model['term'].str.extract(r'(\d+)').astype(float)
 
-    # 2. EMP_LENGTH → angka (0-10)
+    # 2. EMP_LENGTH -> angka (0-10)
     emp_map = {
         '< 1 year': 0, '1 year': 1, '2 years': 2, '3 years': 3,
         '4 years': 4,  '5 years': 5, '6 years': 6, '7 years': 7,
@@ -137,7 +139,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df_model['emp_length'] = df_model['emp_length'].map(emp_map)
     df_model['emp_length'].fillna(df_model['emp_length'].median(), inplace=True)
 
-    # 3. EARLIEST_CR_LINE → Usia kredit dalam tahun (credit_age_years)
+    # 3. EARLIEST_CR_LINE -> Usia kredit dalam tahun (credit_age_years)
     REF_YEAR = 2015
 
     def parse_cr_year(date_str):
@@ -156,17 +158,17 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df_model['installment_to_income'] = df_model['installment'] / (df_model['annual_inc'] / 12 + 1)
     df_model['revol_bal_to_limit']    = df_model['revol_bal'] / (df_model['total_rev_hi_lim'] + 1)
 
-    # 5. MTHS_SINCE_LAST_DELINQ: NaN = tidak pernah menunggak → isi 999
+    # 5. MTHS_SINCE_LAST_DELINQ: NaN = tidak pernah menunggak -> isi 999
     df_model['mths_since_last_delinq'].fillna(999, inplace=True)
     df_model['mths_since_last_record'].fillna(999, inplace=True)
 
-    # 6. Kolom numerik lainnya → isi NaN dengan median
+    # 6. Kolom numerik lainnya -> isi NaN dengan median
     numeric_cols = df_model.select_dtypes(include='number').columns
     for col in numeric_cols:
         if df_model[col].isnull().sum() > 0:
             df_model[col].fillna(df_model[col].median(), inplace=True)
 
-    # 7. ENCODING KATEGORIKAL → One-Hot Encoding
+    # 7. ENCODING KATEGORIKAL -> One-Hot Encoding
     cat_cols = [
         c for c in ['term', 'purpose', 'emp_length', 'home_ownership',
                      'verification_status', 'addr_state']
@@ -180,10 +182,10 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 
     missing_check = df_model.isnull().sum()
     if missing_check.sum() > 0:
-        print("  ⚠️  Missing values tersisa:")
+        print("  [!] Missing values tersisa:")
         print(missing_check[missing_check > 0])
     else:
-        print("  ✅ Tidak ada missing values.")
+        print("  [OK] Tidak ada missing values.")
 
     return df_model
 
@@ -239,7 +241,7 @@ def train_model(X_train, y_train):
         random_state=RANDOM_STATE
     )
     base_model.fit(X_train, y_train)
-    print("  ✅ Base model selesai dilatih.")
+    print("  [OK] Base model selesai dilatih.")
     return base_model
 
 
@@ -260,7 +262,7 @@ def calibrate_model(base_model, X_val, y_val):
         method='sigmoid'   # Platt Scaling
     )
     calibrated_model.fit(X_val, y_val)
-    print("  ✅ Kalibrasi selesai (Platt Scaling via FrozenEstimator).")
+    print("  [OK] Kalibrasi selesai (Platt Scaling via FrozenEstimator).")
     return calibrated_model
 
 
@@ -347,18 +349,18 @@ def final_evaluation(y_test, y_test_proba, auc_final, ks_final, threshold=0.30):
     print(f"  ROC-AUC Score : {auc_final:.4f}")
     print(f"  KS Statistic  : {ks_final:.2%}")
     print()
-    print("─" * 65)
+    print("-" * 65)
     print("  INTERPRETASI BISNIS")
-    print("─" * 65)
+    print("-" * 65)
     total_bad  = tp + fn
     total_good = tn + fp
     print(f"  Dari {total_bad:,} Nasabah Buruk (sebenarnya):")
-    print(f"    → BERHASIL DITOLAK  : {tp:,} ({tp/total_bad:.1%})  ✅ NPL terselamatkan")
-    print(f"    → Lolos ke approval  : {fn:,} ({fn/total_bad:.1%})  ❌ Risiko NPL tersisa")
+    print(f"    -> BERHASIL DITOLAK  : {tp:,} ({tp/total_bad:.1%})  [OK] NPL terselamatkan")
+    print(f"    -> Lolos ke approval  : {fn:,} ({fn/total_bad:.1%})  [!]  Risiko NPL tersisa")
     print()
     print(f"  Dari {total_good:,} Nasabah Baik (sebenarnya):")
-    print(f"    → BERHASIL DISETUJUI : {tn:,} ({tn/total_good:.1%})  ✅ Profit bunga masuk")
-    print(f"    → Salah DITOLAK      : {fp:,} ({fp/total_good:.1%})  ⚠️  Opportunity cost")
+    print(f"    -> BERHASIL DISETUJUI : {tn:,} ({tn/total_good:.1%})  [OK] Profit bunga masuk")
+    print(f"    -> Salah DITOLAK      : {fp:,} ({fp/total_good:.1%})  [!]  Opportunity cost")
 
     return tn, fp, fn, tp
 
@@ -515,7 +517,7 @@ def plot_all(df, y_val, y_test, y_val_proba_base, y_val_proba_cal,
     plt.close(fig)
     print(f"  Saved: plot_5_feature_importance.png")
 
-    print("\n  ✅ Semua visualisasi berhasil disimpan.")
+    print("\n  [OK] Semua visualisasi berhasil disimpan.")
 
 
 # 13. RINGKASAN FINAL
@@ -538,10 +540,10 @@ def print_summary(auc_final, ks_final, X_train, X_test, feat_imp, threshold):
     print()
     print("  Top 3 Faktor Risiko Kredit (Permutation Importance):")
     for _, row in feat_imp.head(3).iterrows():
-        print(f"    {row['Fitur']}: AUC drop {row['Importance']:.4f} ± {row['Std']:.4f}")
+        print(f"    {row['Fitur']}: AUC drop {row['Importance']:.4f} +/- {row['Std']:.4f}")
     print()
-    print("  ✅ Model siap digunakan sebagai decision support tool")
-    print("  ⚠️  Threshold final sebaiknya dikalibrasi bersama tim bisnis")
+    print("  [OK] Model siap digunakan sebagai decision support tool")
+    print("  [!]  Threshold final sebaiknya dikalibrasi bersama tim bisnis")
     print("      berdasarkan analisis biaya NPL vs opportunity cost")
     print("=" * 65)
 
